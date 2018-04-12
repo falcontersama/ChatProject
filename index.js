@@ -7,8 +7,17 @@ app.get('/', function(req, res){
 });
 
 io.on('connection', function(socket){
+    var roomname = 'default';
+    socket.join(roomname);
+    socket.leave(socket.id);
+    socket.on('join',function(newroom){
+        socket.leave(roomname)
+        socket.join(newroom);
+        roomname = newroom;
+    })
     socket.on('chat message', function(msg){
-      io.emit('chat message', msg);
+        io.to(roomname).emit('chat message', msg);
+        console.log(socket.id +' emit '+msg + ' to '+roomname);
     });
   });
 

@@ -11,19 +11,31 @@
       #messages { list-style-type: none; margin: 0; padding: 0; }
       #messages li { padding: 5px 10px; }
       #messages li:nth-child(odd) { background: #eee; }
+      #container button {padding: 10px; margin: 5px;}
     </style>
     
   </head>
   <body>
     <ul id="messages"></ul>
+    <button id="add">add room</button>
+    <div id='container'></div>>
     <form action="">
       <input id="m" autocomplete="off" /><button>Send</button>
     </form>
     <script src="/socket.io/socket.io.js"></script>
     <script src="https://code.jquery.com/jquery-1.11.1.js"></script>
     <script>
-    $(function () {
         var socket = io();
+        let c = 0;
+        $('#add').click(()=>{
+          let b = $("<button>", {id: c, text: c})
+            c++
+          b.click(()=>{
+            console.log(b.attr('id'));
+            socket.emit('join',b.attr('id'))
+          })
+          $('#container').append(b)
+        });
         $('form').submit(function(){
             socket.emit('chat message', $('#m').val());
             $('#m').val('');
@@ -32,7 +44,6 @@
         socket.on('chat message', function(msg){
             $('#messages').append($('<li>').text(msg));
         });
-    });
     </script>
   </body>
 </html>
