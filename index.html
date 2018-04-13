@@ -16,8 +16,8 @@
     
   </head>
   <body>
-    <ul id="messages"></ul>
     <button id="add">add room</button>
+    <ul id="messages"></ul>
     <div id='container'></div>>
     <form action="">
       <input id="m" autocomplete="off" /><button>Send</button>
@@ -32,7 +32,7 @@
             c++
           b.click(()=>{
             console.log(b.attr('id'));
-            socket.emit('join',b.attr('id'))
+            socket.emit('join',b.attr('id'));
           })
           $('#container').append(b)
         });
@@ -41,8 +41,11 @@
             $('#m').val('');
             return false;
         });
-        socket.on('chat message', function(msg){
-            $('#messages').append($('<li>').text(msg));
+        socket.on('update',function(msg){
+          $('#messages').empty();
+          for (i =0;i<msg.length;i++){
+            $('#messages').append($('<li>').text(msg[i]));
+          }
         });
     </script>
   </body>
