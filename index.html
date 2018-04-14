@@ -95,6 +95,11 @@
             $('#messages').append($('<li>').text(msg[i].user + " : " + msg[i].message + ' @ ' + msg[i].time));
           }
         });
+				
+				socket.on('redirect', function(destination) {
+					socket = io('http://localhost:3001/');
+				console.log("redirected to" +destination);
+				});
 
     </script>
 
