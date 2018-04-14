@@ -51,6 +51,15 @@
     <script src="https://code.jquery.com/jquery-1.11.1.js"></script>
     <script>
         var socket = io('http://localhost:3000/');
+				socket.on('redirect', function(dest) {
+					
+					console.log("redirecting to " +dest);
+					socket = io(dest);
+				});
+				
+				socket.on("connect", () => {
+					console.log("Successful connection");
+				});
 				
         $('#add').click(()=>{
           socket.emit('add room',$("#roomname").val());
