@@ -49,13 +49,13 @@
 
     <script src="/socket.io/socket.io.js"></script>
     <script src="https://code.jquery.com/jquery-1.11.1.js"></script>
-    <script>
+		
+
         var socket = io('http://localhost:3000/');
-				socket.on('redirect', function(dest) {
-					
-					console.log("redirecting to " +dest);
-					socket = io(dest);
-				});
+				//socket.on('redirect', function(dest) {		
+				//	console.log("redirecting to " +dest);
+				//	socket = io(dest);
+				//});
 				
 				socket.on("connect", () => {
 					console.log("Successful connection");
@@ -80,6 +80,7 @@
         })
 
         socket.on('update room',(room)=>{
+					console.log("update room");
           let roombutton = $("<button>", {id: room, text: room});
             roombutton.click(()=>{
             socket.emit('join',roombutton.attr('id'));

@@ -9,6 +9,7 @@ app.get('/', function(req, res){
 });
 
 io.on('connection', function(socket){
+		console.log(socket.id + 'joins the server');
     socket.roomname = 'default';
     socket.clientmsg={};
     socket.clientmsg[socket.roomname] = servermsg[socket.roomname].slice(0);
@@ -35,10 +36,12 @@ io.on('connection', function(socket){
     });
 
     socket.on('set username',(name)=>{
+				console.log("set username");
         socket.username = name;
     });
 
     socket.on('add room',(room)=>{
+				console.log("add room");
         serverroom.push(room);
         io.emit('update room',serverroom[serverroom.length-1]);
     });
