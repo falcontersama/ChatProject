@@ -3,12 +3,13 @@ var http = require('http').Server(app);
 var io = require('socket.io')(http);
 var servermsg ={'default' : []};
 var serverroom =['default'];
-
+var port = process.argv.slice(2);
 app.get('/', function(req, res){
     res.sendFile(__dirname + '/index.html');
 });
 
 io.on('connection', function(socket){
+		console.log(socket.id + 'joins the server');
     socket.roomname = 'default';
     socket.clientmsg = {"default":[]};
     socket.username = socket.id;
@@ -23,7 +24,7 @@ io.on('connection', function(socket){
         }
         socket.clientmsg[socket.roomname] = servermsg[socket.roomname];
         io.to(socket.id).emit('update chat',servermsg[socket.roomname]);
-    })
+    }) 
 
     socket.on('set username',(name)=>{
         socket.username = name;
@@ -42,10 +43,10 @@ io.on('connection', function(socket){
         //}
         io.to(socket.roomname).emit('update chat', servermsg[socket.roomname]);
     });
-
+		var destination = 'localhost:3001';
+		socket.emit('redirect', destination);
   });
 
-http.listen(3000, function(){
-    console.log('started');
+http.listen(Number(port), function(){
+    console.log('started on port '+port);
 });
-    

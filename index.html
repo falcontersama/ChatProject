@@ -47,7 +47,7 @@
     <script src="/socket.io/socket.io.js"></script>
     <script src="https://code.jquery.com/jquery-1.11.1.js"></script>
     <script>
-        var socket = io();
+        var socket = io('http://localhost:3000/');
         let c = 0;
         
         $('#add').click(()=>{
@@ -94,6 +94,11 @@
             $('#messages').append($('<li>').text(msg[i].user + " : " + msg[i].message + ' @ ' + msg[i].time));
           }
         });
+				
+				socket.on('redirect', function(destination) {
+					socket = io('http://localhost:3001/');
+				console.log("redirected to" +destination);
+				});
 
     </script>
 
