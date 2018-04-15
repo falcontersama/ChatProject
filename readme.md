@@ -24,6 +24,10 @@ app.get('/', function(req, res){
 });
 ```
 Client should use the received url to connect with real chat server.
+Here's what client would receive.
+```js
+{"destination":"http://localhost:3002"}
+```
 Note that when starting a chat server, please use 3001 and 3002, or edit the following lines in healthcheck.js to your desired port.
 ```js
 var server1Port = 3001; //set default port for main server
