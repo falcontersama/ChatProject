@@ -17,6 +17,7 @@ function testMainServerConnection(){
         host: 'localhost',
         port: server1Port,
     };
+    //ping using http get
     var request = http.get(options, function(res) {
         //console.log('STATUS: ' + res.statusCode);
         available = true;
@@ -26,6 +27,7 @@ function testMainServerConnection(){
         available = false;
         
     });
+    //wait for one second after ping and then check if the server is available
     setTimeout(() => {
         //if server main is unavailable healthchecker will return second server port to client
         if(available){
