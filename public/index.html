@@ -5,25 +5,26 @@
     <style>
       * { margin: 0; padding: 0;}
       html,body { font: 13px Helvetica, Arial; height: 100%; width: 100%;}
-      #msg { background: #000;position: static; bottom: 0; width: 100%; height: 100%;}
-      #msg input { border: 0; width: 90%; margin-right: .5%; height: 100%;}
-      #msg button { width: 9%; background: rgb(130, 224, 255);  float:right; height: 100%;}
+      #msg { background: black;position: static; bottom: 0; width: 100%; height: 100%; border-top:5px solid grey;}
+      #msg input { width: 88%; padding: 0% 1%; border: 0; margin-right: 1%; height: 100%}
+      #msg button {width: 9%; background: darkorange; padding: 0% 1%; position :static; height:100%}
       #messages { list-style-type: none; margin: 0; padding: 0; width:80%; float:right; height: 100%; overflow-y: scroll;}
       #messages li { padding: 5px 10px; word-wrap: break-word; }
       #messages li:nth-child(odd) { background: #eee;  word-wrap: break-word;}
       #container button {width:31%; height:40px; overflow: hidden; margin : 3% 1% 0% 1%;}
       #ui{position: static; width: 100%; height: 5%;}
-      #ui form{background :black; width :100%; position: static; height: 100%; margin: 0;}
-      #ui form input{width: 78%; padding: 0% 1%; border: 0; margin-right: 1%; height: 100%}
-      #ui form button{width: 19%; background: darkorange; padding: 0% 1%; position :static; height:100%}
-      #room{width: 20%; right: 0; position: static; height: 100%; float:left; background: black; overflow-y: auto;}
+      #username{background :black; width :100%; position: static; height: 100%; border-bottom:5px solid grey;}
+      #username input{width: 88%; padding: 0% 1%; border: 0; margin-right: 1%; height: 100%}
+      #username button{width: 9%; background: darkorange; padding: 0% 1%; position :static; height:100%}
+      #room{width: 20%; right: 0; position: static; height: 100%; float:left; background: black; overflow-y: auto; border-right:5px solid grey; box-sizing: border-box;}
       #addroom {height: 10%; width: 100%; margin-top: 4%;} 
       #roomname{width:100%; height: 46%; top:0; border:0;}
-      #add{width: 100%;height: 50%; top:0;}
+      #addroom button{width: 100%;height: 50%; top:0;}
       #container{width:100%; height: 88%; bottom: 0;  }
       #main{width:100%; height: 90%}
       #submit{width: 100% ; height: 5%; display: block;}
       button {border: none;}
+      form{ box-sizing: border-box;}
     </style>
   </head>
   <body>
@@ -35,7 +36,7 @@
     <div id ="main">
       <div id ='room'>
           <form id='addroom'>
-            <input id ="roomname" type="text" autocomplete="off" required><button id="add">add room</button>
+            <input id ="roomname" type="text" autocomplete="off" required><button>add room</button>
           </form>
         <div id='container'>
         </div>
@@ -56,100 +57,185 @@
   crossorigin="anonymous"></script>
     <script>
 
+      let currentroom = 'default';
+      let joinedroom = {'default':1};
+      let clientmsg = {'default':[]};
+      let msgcheckpoint = {};
+      let username = '';
+      let breakstatus = {default:false};
+      let serverroom = ['default'];
+
       $.get( "http://localhost:3000/api", function(data) {
-        
         var socket = io(data.destination);
         initSocket(socket)
-
       });
 
       function initSocket(socket) {
         socket.on("connect", () => {
           console.log("Successful connection at ",socket.io.uri);
+          socket.emit('init room',joinedroom);
+          if(!msgcheckpoint['default']){
+            socket.emit('get msgcheckpoint','default');
+          }
+          if(username===''){
+            username = socket.id;
+          }
+          renderui(socket);
+          rendermessage(socket,currentroom);
+        });
+        
+        socket.on('server room',(server_room)=>{
+          console.log('server room')
+          serverroom = server_room;
+          renderui(socket);
         });
 
-        socket.on('update room',(serverroom,currentroom,breakstatus)=>{
-          $('#container').empty();
-          for (i=0;i<serverroom.length;i++){
-            let room = serverroom[i];
-            console.log(room);
-            let roombutton = $("<button>", {class: 'roomname', text: room, name: room});
-            if(room === currentroom){
-              roombutton.css('background-color','darkorange');
-            }else{
-              roombutton.css('background-color','');
-            }
-            roombutton.click(()=>{
-              socket.emit('join',roombutton.attr('name'));
-            });
-            $('#container').append(roombutton);
+        socket.on('msgcheckpoint',(room,checkpoint)=>{
+          console.log('msgcheckpoint')
+          msgcheckpoint[room] = checkpoint;
+          renderui(socket);
+          rendermessage(socket,currentroom);
+        });
 
-            let breakbutton = $("<button>", {class: 'break', text: "break", name: room});
-            if(breakstatus[room]){
-              breakbutton.text('unbreak') ;
-            }else{
-              breakbutton.text('break') ;
-            }
-            breakbutton.click(()=>{
-              socket.emit('break room',breakbutton.attr('name'));
-            })
-            $('#container').append(breakbutton);
-
-            let leavebutton = $("<button>", {class: 'leave', text: "leave", name: room});
-            leavebutton.click(()=>{
-              socket.emit('leave',leavebutton.attr('name'));
-              socket.emit('join','default');
-            })
-            $('#container').append(leavebutton);
+        socket.on('breakmsg',(room,msg)=>{
+          console.log('breakmsg');
+          clientmsg[room] = msg;
+          if(room === currentroom){
+            rendermessage(socket,currentroom);
           }
         });
 
-        socket.on('update chat',(msg)=>{
-          console.log('update chat ');
-          $('#messages').empty();
-          for (i =0;i<msg.length;i++){
-            $('#messages').append($('<li>').text(msg[i].user + ' @' + msg[i].time + " : " + msg[i].message ));
+        socket.on('addchat',(msg,room)=>{
+          if(!breakstatus[room] && joinedroom[room]){
+            clientmsg[room].push(msg);
+          }
+          if(currentroom === room){
+            rendermessage(socket,room);
           }
         });
 
         socket.on('connect_error', function(err) {
-              // notify user
               socket.disconnect();
-
               $.get( "http://localhost:3000/api", function(data) {
                 socket = io(data.destination);
                 console.log("going to ",data.destination);
                 initSocket(socket);
+                alert('server connected at ' +data.destination);
               });
         });
 
         socket.on('disconnect',()=>{
+          alert('server disconnected');
           console.log('disconnected');
         })
 
         $('#addroom').off('submit');
+
         $('#addroom').submit(()=>{
+          console.log('add room')
           socket.emit('add room',$("#roomname").val());
           socket.emit('join',$("#roomname").val());
+          currentroom = $("#roomname").val();
+          breakstatus[currentroom] = false;
+          joinedroom[currentroom] = 1;
+          clientmsg[currentroom] =[];
+          socket.emit('get msgcheckpoint',currentroom);
           $("#roomname").val('');
           return false;
         });
         
         $('#msg').off('submit');
+
         $('#msg').submit(()=>{
-            socket.emit('chat message', $('#m').val());
+          if(!breakstatus[currentroom]){
+            socket.emit('chat message', $('#m').val(),currentroom,username);
+          }
             $('#m').val('');
             return false;
         });
         
         $('#username').off('submit');
+
         $('#username').submit(()=>{
-          socket.emit('set username', $("#name").val());
+          username = $("#name").val();
           $('#name').val('');
           return false;
         })
       } 
-			
+      
+			function renderui(socket){
+        $('#container').empty();
+        for (i=0;i<serverroom.length;i++){
+          let room = serverroom[i];
+
+          let roombutton = $("<button>", {class: 'roomname', text: room, name: room});
+          if(room === currentroom){
+            roombutton.css('background-color','darkorange');
+          }else{
+            roombutton.css('background-color','');
+          }
+          roombutton.click(()=>{
+            socket.emit('join',roombutton.attr('name'));
+            currentroom = room;
+            if (joinedroom[room]){
+              if(!breakstatus[room]){
+                breakstatus[room] = false;
+                rendermessage(socket,currentroom);
+              }
+            }else{
+              joinedroom[room] = 1;
+              clientmsg[room] =[];
+              socket.emit('get msgcheckpoint',roombutton.attr('name'));
+            }
+            renderui(socket);
+          });
+          $('#container').append(roombutton);
+
+          let breakbutton = $("<button>", {class: 'break', text: "break", name: room});
+          if(breakstatus[room]){
+            breakbutton.text('unbreak') ;
+          }else{
+            breakbutton.text('break') ;
+          }
+          breakbutton.click(()=>{
+            breakstatus[room] = !breakstatus[room];
+            if (!breakstatus[room]){
+              socket.emit('get breakmsg',room,msgcheckpoint[room]); 
+              console.log('get breakmsg at',msgcheckpoint[room] )   
+            }
+            renderui(socket);
+          })
+          $('#container').append(breakbutton);
+
+          let leavebutton = $("<button>", {class: 'leave', text: "leave", name: room});
+          if (room ==='default'){
+            leavebutton.prop('disabled',true);
+          }
+          leavebutton.click(()=>{
+              socket.emit('leave',leavebutton.attr('name'));
+              delete clientmsg[room];
+              delete msgcheckpoint[room];
+              delete joinedroom[room];
+              if(currentroom===room){
+                socket.emit('join','default');
+                currentroom = 'default';
+                rendermessage(socket,currentroom);
+              }
+              renderui(socket);
+          })
+          $('#container').append(leavebutton);
+
+        }
+      }
+
+      function rendermessage(socket,room){
+        console.log('update chat at',room);
+        console.log(clientmsg[room]);
+        $('#messages').empty();
+        for (i =0;i<clientmsg[room].length;i++){
+          $('#messages').append($('<li>').text(clientmsg[room][i].user + ' @' + clientmsg[room][i].time + " : " + clientmsg[room][i].message ));
+        }
+      }
 		
     </script>
 
